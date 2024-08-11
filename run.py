@@ -46,7 +46,7 @@ def get_embedding(text):
 @bot.event
 async def on_ready():
     print(f'{bot.user} has connected to Discord!')
-    
+
 llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro-exp-0801",
     safety_settings={
         HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
@@ -64,7 +64,6 @@ temp = """You are an edgy teenager who likes to make edgy, genz funny jokes.
          this is the query  :{query}
          
          do not return your opinion in any manner, just the things that i have mentioned above.
-        
         """
 prompt = ChatPromptTemplate.from_template(temp)
 parser = StrOutputParser()
@@ -129,15 +128,28 @@ def run_web_server():
             self.end_headers()
             self.wfile.write(b'Discord bot is running!')
 
-    httpd = HTTPServer(('', 8080), Handler)
-    print("Web server running on port 8080")
+    port = int(os.environ.get('PORT', 8080))
+    httpd = HTTPServer(('', port), Handler)
+    print(f"Web server running on port {port}")
     httpd.serve_forever()
-    
+
+@bot.event
+async def on_error(event, *args, **kwargs):
+    with open('err.log', 'a') as f:
+        if event == 'on_message':
+            f.write(f'Unhandled message: {args[0]}\n')
+        else:
+            raise
+
 if __name__ == '__main__':
     # Start the web server in a separate thread
     web_thread = threading.Thread(target=run_web_server, daemon=True)
     web_thread.start()
 
     # Run the Discord bot
-    bot.run(os.getenv('DISCORD_BOT_TOKEN'))
-
+    try:
+        bot.run(os.getenv('DISCORD_BOT_TOKEN'))
+    except Exception as e:
+        print(f"Error: {e}")
+        with open('err.log', 'a') as f:
+            f.write(f'Error: {e}\n')
