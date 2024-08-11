@@ -13,6 +13,9 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from google.generativeai.types import HarmCategory, HarmBlockThreshold
+from http.server import HTTPServer, SimpleHTTPRequestHandler
+import threading
+
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix='!', intents=intents)
@@ -118,4 +121,23 @@ async def search_video(ctx, *, query):
     except Exception as e:
         await ctx.send(f"An error occurred: {str(e)}")
 
-bot.run(os.getenv('DISCORD_BOT_TOKEN'))
+def run_web_server():
+    class Handler(SimpleHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.send_header('Content-type', 'text/plain')
+            self.end_headers()
+            self.wfile.write(b'Discord bot is running!')
+
+    httpd = HTTPServer(('', 8080), Handler)
+    print("Web server running on port 8080")
+    httpd.serve_forever()
+    
+if __name__ == '__main__':
+    # Start the web server in a separate thread
+    web_thread = threading.Thread(target=run_web_server, daemon=True)
+    web_thread.start()
+
+    # Run the Discord bot
+    bot.run(os.getenv('DISCORD_BOT_TOKEN'))
+
